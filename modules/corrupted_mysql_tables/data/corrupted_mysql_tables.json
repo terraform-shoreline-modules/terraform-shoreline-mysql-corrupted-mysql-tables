@@ -1,0 +1,166 @@
+{
+  "name": "corrupted_mysql_tables",
+  "description": "Corrupted MySQL Tables refer to a type of incident where there is an error in the data held within a MySQL table, rendering it unreadable. This can result in the server crashing when attempts are made to read from the corrupted table. This issue can occur occasionally and can cause disruption to the normal functioning of the database. The incident requires troubleshooting to identify the cause of the corruption and to recover the data held within the table.",
+  "params": [
+    {
+      "name": "NAME_OF_DATABASE",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_MYSQL_ERRORLOG",
+      "value": ""
+    },
+    {
+      "name": "DATABASE_NAME",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_BACKUP_FILE",
+      "value": ""
+    },
+    {
+      "name": "PASSWORD",
+      "value": ""
+    },
+    {
+      "name": "TABLE_NAME",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_MYSQL_LOGFILE",
+      "value": ""
+    },
+    {
+      "name": "USERNAME",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Corrupted MySQL Tables\nCorrupted MySQL Tables refer to a type of incident where there is an error in the data held within a MySQL table, rendering it unreadable. This can result in the server crashing when attempts are made to read from the corrupted table. This issue can occur occasionally and can cause disruption to the normal functioning of the database. The incident requires troubleshooting to identify the cause of the corruption and to recover the data held within the table."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Step 1: Check if MySQL is running"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `systemctl status mysql`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Step 2: Check the MySQL error logs for any recent errors"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tail -n 100 /var/log/mysql/error.log`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Step 3: Check the MySQL database for corrupted tables"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `mysqlcheck -u ${USERNAME} -p ${PASSWORD} --all-databases --check --silent`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Step 4: Check the MySQL log files for any clues"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tail -n 100 /var/log/mysql/mysql.log`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check to see if the DB server shutdown leading to incomplete transactions."
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_check_mysql_recovery($PATH_TO_MYSQL_ERRORLOG, $PATH_TO_MYSQL_LOGFILE)"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Step 5: Attempt to repair any corrupted tables using mysqlcheck"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `mysqlcheck -u ${USERNAME} -p ${PASSWORD} --all-databases --repair --silent`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Restore from Backup: If you have a recent backup of your MySQL database, restoring it to a point before the corruption occurred will resolve the issue. This is assuming that the backup itself is not corrupted."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_restore_db($NAME_OF_DATABASE, $PATH_TO_BACKUP_FILE, $PASSWORD, $USERNAME)"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Repair and Optimize: MySQL has a built-in repair and optimize function that can help fix corrupted tables. You can use the following command in the MySQL client: "
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_repair_optimize_table($DATABASE_NAME, $PASSWORD, $TABLE_NAME, $USERNAME)"
+    },
+    {
+      "name": "cell_18",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Attempt the MYSQL dump and reload method for corrupted tables"
+    },
+    {
+      "name": "cell_19",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_create_restore_table($DATABASE_NAME, $PATH_TO_BACKUP_FILE, $TABLE_NAME)"
+    }
+  ]
+}
